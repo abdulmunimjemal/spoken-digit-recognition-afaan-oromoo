@@ -97,8 +97,3 @@ graph LR
 └── run.py                  # CLI Entry point
 ```
 
----
-
-<div align="center">
-    Created with ❤️
-</div>
