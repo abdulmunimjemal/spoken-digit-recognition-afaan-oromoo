@@ -16,7 +16,7 @@ import mlflow
 import mlflow.pytorch
 import numpy as np
 
-def train(epochs=30, batch_size=32, learning_rate=0.001, data_dir='data/processed', model_type='simple', model_save_path='models/best_model.pth'):
+def train(epochs=30, batch_size=32, learning_rate=0.001, data_dir='data/processed', model_type='simple', model_save_path='models/best_model.pth', time_mask=30, freq_mask=15):
     
     # Start MLflow run
     mlflow.set_experiment("Spoken Digit Recognition")
@@ -27,6 +27,8 @@ def train(epochs=30, batch_size=32, learning_rate=0.001, data_dir='data/processe
         mlflow.log_param("batch_size", batch_size)
         mlflow.log_param("learning_rate", learning_rate)
         mlflow.log_param("model_type", model_type)
+        mlflow.log_param("time_mask", time_mask)
+        mlflow.log_param("freq_mask", freq_mask)
         
         # Device configuration
         if torch.cuda.is_available():
@@ -52,7 +54,8 @@ def train(epochs=30, batch_size=32, learning_rate=0.001, data_dir='data/processe
         train_files, test_files = train_test_split(all_files, test_size=0.2, random_state=42, stratify=[y for x, y in all_files])
         
         # Create Datasets
-        train_dataset = SpokenDigitDataset(file_list=train_files, train=True)
+        # Pass augmentation params
+        train_dataset = SpokenDigitDataset(file_list=train_files, train=True, time_mask_param=time_mask, freq_mask_param=freq_mask)
         test_dataset = SpokenDigitDataset(file_list=test_files, train=False)
         
         print(f"Training samples: {len(train_dataset)}")
@@ -154,9 +157,11 @@ if __name__ == "__main__":
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--data_dir', type=str, default='data/processed')
     parser.add_argument('--model_type', type=str, default='simple', choices=['simple', 'deeper'])
+    parser.add_argument('--time_mask', type=int, default=30, help='Time masking param for SpecAugment')
+    parser.add_argument('--freq_mask', type=int, default=15, help='Frequency masking param for SpecAugment')
     args = parser.parse_args()
     
     if not os.path.exists('models'):
         os.makedirs('models')
         
-    train(epochs=args.epochs, batch_size=args.batch_size, learning_rate=args.lr, data_dir=args.data_dir, model_type=args.model_type)
+    train(epochs=args.epochs, batch_size=args.batch_size, learning_rate=args.lr, data_dir=args.data_dir, model_type=args.model_type, time_mask=args.time_mask, freq_mask=args.freq_mask)

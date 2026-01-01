@@ -12,6 +12,8 @@ def main():
     train_parser.add_argument('--batch_size', type=int, default=32)
     train_parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
     train_parser.add_argument('--model_type', type=str, default='simple', choices=['simple', 'deeper'], help='Model architecture')
+    train_parser.add_argument('--time_mask', type=int, default=30, help='Time masking param')
+    train_parser.add_argument('--freq_mask', type=int, default=15, help='Frequency masking param')
     
     # Predict command
     predict_parser = subparsers.add_parser('predict', help='Predict a digit from an audio file')
@@ -21,7 +23,7 @@ def main():
     
     if args.command == 'train':
         from src.models.train_model import train
-        train(epochs=args.epochs, batch_size=args.batch_size, learning_rate=args.lr, model_type=args.model_type)
+        train(epochs=args.epochs, batch_size=args.batch_size, learning_rate=args.lr, model_type=args.model_type, time_mask=args.time_mask, freq_mask=args.freq_mask)
         
     elif args.command == 'predict':
         from src.models.predict_model import predict

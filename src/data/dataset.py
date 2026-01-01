@@ -6,7 +6,7 @@ import numpy as np
 from torch.utils.data import Dataset
 
 class SpokenDigitDataset(Dataset):
-    def __init__(self, data_path=None, file_list=None, sample_rate=16000, n_mels=64, max_duration=1.0, train=False):
+    def __init__(self, data_path=None, file_list=None, sample_rate=16000, n_mels=64, max_duration=1.0, train=False, time_mask_param=30, freq_mask_param=15):
         """
         Args:
             data_path (str, optional): Path to the processed data directory. Used if file_list is None.
@@ -15,6 +15,8 @@ class SpokenDigitDataset(Dataset):
             n_mels (int): Number of Mel bands.
             max_duration (float): Max duration in seconds.
             train (bool): If True, apply SpecAugment.
+            time_mask_param (int): Time masking parameter.
+            freq_mask_param (int): Frequency masking parameter.
         """
         self.data_path = data_path
         self.sample_rate = sample_rate
@@ -29,20 +31,22 @@ class SpokenDigitDataset(Dataset):
         elif data_path is not None:
             self._load_dataset()
         else:
+            # This case should ideally not be reached if data_path is not optional,
+            # but keeping for robustness if signature changes again.
             raise ValueError("Either data_path or file_list must be provided")
 
+        # Audio Transforms
         self.mel_transform = torchaudio.transforms.MelSpectrogram(
-            sample_rate=sample_rate,
+            sample_rate=sample_rate, 
             n_mels=n_mels,
-            n_fft=1024,
+            n_fft=1024, # Kept original n_fft and hop_length
             hop_length=512
         )
-        
         self.db_transform = torchaudio.transforms.AmplitudeToDB()
         
-        # Augmentations
-        self.freq_mask = torchaudio.transforms.FrequencyMasking(freq_mask_param=10)
-        self.time_mask = torchaudio.transforms.TimeMasking(time_mask_param=10)
+        # Augmentation (SpecAugment) - Configurable
+        self.time_mask = torchaudio.transforms.TimeMasking(time_mask_param=time_mask_param)
+        self.freq_mask = torchaudio.transforms.FrequencyMasking(freq_mask_param=freq_mask_param)
         
     def _load_dataset(self):
         # Traverse 0-9 folders
