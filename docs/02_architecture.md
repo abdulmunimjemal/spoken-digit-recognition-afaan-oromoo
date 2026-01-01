@@ -8,11 +8,11 @@ The system follows a modular **Model-View-Controller (MVC)** inspired pattern, a
 
 ```mermaid
 graph TD
-    User((👤 User))
-    UI[🖥️ Streamlit App (View)]
-    Predict[⚙️ Inference Eng (Controller)]
-    Model[🧠 DeeperCNN (Model)]
-    Data[📂 Feature Extractor]
+    User(("👤 User"))
+    UI["🖥️ Streamlit App (View)"]
+    Predict["⚙️ Inference Eng (Controller)"]
+    Model["🧠 DeeperCNN (Model)"]
+    Data["📂 Feature Extractor"]
 
     User -->|Uploads/Records| UI
     UI -->|Raw Audio| Predict
@@ -35,10 +35,10 @@ Raw audio is not fed directly into the neural network. It must be converted into
 
 ```mermaid
 graph LR
-    A[🎤 Rough Audio] -->|Resample 16kHz| B[📉 Clean Waveform]
-    B -->|STFT + Mel Scale| C[🖼️ Melspectrogram (64xN)]
-    C -->|Log Scale| D[Decibel Spectrogram]
-    D -->|Normalize| E[Tensor (1, 64, N)]
+    A["🎤 Rough Audio"] -->|Resample 16kHz| B["📉 Clean Waveform"]
+    B -->|STFT + Mel Scale| C["🖼️ Melspectrogram (64xN)"]
+    C -->|Log Scale| D["Decibel Spectrogram"]
+    D -->|Normalize| E["Tensor (1, 64, N)"]
 ```
 
 *   **Resampling**: Ensures all inputs match the training frequency (16kHz).
@@ -54,25 +54,25 @@ We developed a custom Convolutional Neural Network (CNN) specifically for this t
 
 ```mermaid
 graph TD
-    Input[Input Tensor (1, 64, Time)]
+    Input["Input Tensor (1, 64, Time)"]
     
     subgraph Feature Extraction
-    C1[Conv2d (1->32) + BN + ReLU] --> P1[MaxPool (2x2)]
-    P1 --> C2[Conv2d (32->64) + BN + ReLU]
-    C2 --> P2[MaxPool (2x2)]
-    P2 --> C3[Conv2d (64->128) + BN + ReLU]
-    C3 --> P3[MaxPool (2x2)]
-    P3 --> C4[Conv2d (128->256) + BN + ReLU]
-    C4 --> GP[AdaptiveAvgPool (4x4)]
+    C1["Conv2d (1->32) + BN + ReLU"] --> P1["MaxPool (2x2)"]
+    P1 --> C2["Conv2d (32->64) + BN + ReLU"]
+    C2 --> P2["MaxPool (2x2)"]
+    P2 --> C3["Conv2d (64->128) + BN + ReLU"]
+    C3 --> P3["MaxPool (2x2)"]
+    P3 --> C4["Conv2d (128->256) + BN + ReLU"]
+    C4 --> GP["AdaptiveAvgPool (4x4)"]
     end
     
     subgraph Classification Head
-    GP --> F[Flatten]
-    F --> D1[Linear (4096->512) + ReLU]
-    D1 --> DO1[Dropout (0.5)]
-    DO1 --> D2[Linear (512->128) + ReLU]
-    D2 --> DO2[Dropout (0.3)]
-    DO2 --> Out[Linear (128->10)]
+    GP --> F["Flatten"]
+    F --> D1["Linear (4096->512) + ReLU"]
+    D1 --> DO1["Dropout (0.5)"]
+    DO1 --> D2["Linear (512->128) + ReLU"]
+    D2 --> DO2["Dropout (0.3)"]
+    DO2 --> Out["Linear (128->10)"]
     end
 
     Input --> C1

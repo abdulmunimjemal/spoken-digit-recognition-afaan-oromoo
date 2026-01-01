@@ -67,11 +67,11 @@ The system converts raw audio into visual representations (Mel-Spectrograms) whi
 
 ```mermaid
 graph LR
-    A[🎙️ Audio Input] --> B[🌊 Waveform]
-    B --> C[🖼️ Mel-Spectrogram]
-    C --> D[🧠 DeeperCNN]
-    D --> E[📊 Probability Distribution]
-    E --> F[✅ Prediction]
+    A["🎙️ Audio Input"] --> B["🌊 Waveform"]
+    B --> C["🖼️ Mel-Spectrogram"]
+    C --> D["🧠 DeeperCNN"]
+    D --> E["📊 Probability Distribution"]
+    E --> F["✅ Prediction"]
 ```
 
 *See [docs/02_architecture.md](docs/02_architecture.md) for detailed diagrams.*
