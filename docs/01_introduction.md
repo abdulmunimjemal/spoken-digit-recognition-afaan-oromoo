@@ -6,7 +6,7 @@ Spoken Digit Recognition (SDR) is the "Hello World" of Speech Processing. While 
 **Afaan Oromoo** is one of the most widely spoken languages in Africa, yet it remains under-represented in the digital AI landscape.
 
 ## 🎯 The Mission
-This project aims to bridge that gap by building a **robust, open-source Spoken Digit Recognition system** specifically for Afaan Oromoo. Be achieving high accuracy (90%+), we prove that modern Deep Learning techniques can be effectively applied to low-resource languages with relatively small datasets.
+This project aims to bridge that gap by building **SagalNet**, a **robust, open-source Spoken Digit Recognition system** specifically for Afaan Oromoo. Be achieving high accuracy (90%+), we prove that modern Deep Learning techniques can be effectively applied to low-resource languages with relatively small datasets.
 
 ## 💡 Use Cases
 Why do we need this?
