@@ -7,3 +7,7 @@ data/interim/
 data/external/
 models/*.pt
 venv/
+mlruns/
+mlartifacts/
+models/*.pth
+*.m4a

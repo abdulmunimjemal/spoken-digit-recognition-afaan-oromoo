@@ -10,12 +10,13 @@ import sys
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.data.dataset import SpokenDigitDataset
-from src.models.model import SimpleCNN
-
+from src.models.model import SimpleCNN, DeeperCNN
+from sklearn.metrics import precision_score, recall_score, f1_score
 import mlflow
 import mlflow.pytorch
+import numpy as np
 
-def train(epochs=30, batch_size=32, learning_rate=0.001, data_dir='data/processed', model_save_path='models/best_model.pth'):
+def train(epochs=30, batch_size=32, learning_rate=0.001, data_dir='data/processed', model_type='simple', model_save_path='models/best_model.pth'):
     
     # Start MLflow run
     mlflow.set_experiment("Spoken Digit Recognition")
@@ -25,6 +26,7 @@ def train(epochs=30, batch_size=32, learning_rate=0.001, data_dir='data/processe
         mlflow.log_param("epochs", epochs)
         mlflow.log_param("batch_size", batch_size)
         mlflow.log_param("learning_rate", learning_rate)
+        mlflow.log_param("model_type", model_type)
         
         # Device configuration
         if torch.cuda.is_available():
@@ -59,8 +61,13 @@ def train(epochs=30, batch_size=32, learning_rate=0.001, data_dir='data/processe
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
         
-        # Model
-        model = SimpleCNN(num_classes=10).to(device)
+        # Model Selection
+        if model_type == 'deeper':
+            model = DeeperCNN(num_classes=10).to(device)
+            print("Using DeeperCNN architecture.")
+        else:
+            model = SimpleCNN(num_classes=10).to(device)
+            print("Using SimpleCNN architecture.")
         
         # Loss and Optimizer
         criterion = nn.CrossEntropyLoss()
@@ -69,13 +76,11 @@ def train(epochs=30, batch_size=32, learning_rate=0.001, data_dir='data/processe
         # Learning Rate Scheduler
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3)
         
-        best_acc = 0.0
+        best_f1 = 0.0 # optimizing for F1 now as per request for comparable metrics
         
         for epoch in range(epochs):
             model.train()
             train_loss = 0.0
-            correct = 0
-            total = 0
             
             loop = tqdm(train_loader, desc=f"Epoch [{epoch+1}/{epochs}]", leave=False)
             for images, labels in loop:
@@ -92,46 +97,51 @@ def train(epochs=30, batch_size=32, learning_rate=0.001, data_dir='data/processe
                 optimizer.step()
                 
                 train_loss += loss.item()
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-                
                 loop.set_postfix(loss=loss.item())
                 
-            train_acc = 100 * correct / total
+            avg_train_loss = train_loss/len(train_loader)
             
-            # Validation
+            # Validation & Metrics
             model.eval()
-            val_correct = 0
-            val_total = 0
+            all_preds = []
+            all_labels = []
+            
             with torch.no_grad():
                 for images, labels in test_loader:
                     images = images.to(device)
                     labels = labels.to(device)
                     outputs = model(images)
                     _, predicted = torch.max(outputs.data, 1)
-                    val_total += labels.size(0)
-                    val_correct += (predicted == labels).sum().item()
+                    
+                    all_preds.extend(predicted.cpu().numpy())
+                    all_labels.extend(labels.cpu().numpy())
             
-            val_acc = 100 * val_correct / val_total
+            # Calculate Sklearn Metrics
+            val_acc = 100 * np.mean(np.array(all_preds) == np.array(all_labels))
+            precision = precision_score(all_labels, all_preds, average='macro', zero_division=0)
+            recall = recall_score(all_labels, all_preds, average='macro', zero_division=0)
+            f1 = f1_score(all_labels, all_preds, average='macro', zero_division=0)
             
             # Step Scheduler
-            scheduler.step(val_acc)
+            scheduler.step(val_acc) # Scheduler usually monitors accuracy or loss, keeping acc is fine
             
             # Log metrics to MLflow
-            avg_train_loss = train_loss/len(train_loader)
             mlflow.log_metric("train_loss", avg_train_loss, step=epoch)
-            mlflow.log_metric("train_accuracy", train_acc, step=epoch)
             mlflow.log_metric("val_accuracy", val_acc, step=epoch)
+            mlflow.log_metric("val_precision", precision, step=epoch)
+            mlflow.log_metric("val_recall", recall, step=epoch)
+            mlflow.log_metric("val_f1", f1, step=epoch)
             
-            print(f"Epoch [{epoch+1}/{epochs}] - Loss: {avg_train_loss:.4f} - Train Acc: {train_acc:.2f}% - Val Acc: {val_acc:.2f}%")
+            print(f"Epoch [{epoch+1}/{epochs}] - Loss: {avg_train_loss:.4f} - Val Acc: {val_acc:.2f}% - F1: {f1:.4f}")
             
-            if val_acc > best_acc:
-                best_acc = val_acc
+            # Checkpointing
+            # Save Best Model (using F1 as primary metric for improvements)
+            if f1 > best_f1:
+                best_f1 = f1
                 torch.save(model.state_dict(), model_save_path)
-                print(f"Saved best model with acc: {best_acc:.2f}%")
+                print(f"Saved best model with F1: {best_f1:.4f}")
                 
-                # Log model to MLflow (only best model)
+                # Log model to MLflow
                 mlflow.pytorch.log_model(model, "model")
         
         print("Training finished.")
@@ -143,9 +153,10 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--data_dir', type=str, default='data/processed')
+    parser.add_argument('--model_type', type=str, default='simple', choices=['simple', 'deeper'])
     args = parser.parse_args()
     
     if not os.path.exists('models'):
         os.makedirs('models')
         
-    train(epochs=args.epochs, batch_size=args.batch_size, learning_rate=args.lr, data_dir=args.data_dir)
+    train(epochs=args.epochs, batch_size=args.batch_size, learning_rate=args.lr, data_dir=args.data_dir, model_type=args.model_type)

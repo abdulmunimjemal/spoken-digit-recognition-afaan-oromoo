@@ -49,9 +49,58 @@ class SimpleCNN(nn.Module):
         x = self.fc(x)
         return x
 
+        return x
+
+class DeeperCNN(nn.Module):
+    def __init__(self, num_classes=10):
+        super(DeeperCNN, self).__init__()
+        
+        self.features = nn.Sequential(
+            # Block 1: 1 -> 32
+            nn.Conv2d(1, 32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            
+            # Block 2: 32 -> 64
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            
+            # Block 3: 64 -> 128
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.MaxPool2d(2), # Output: (Batch, 128, 8, ~12)
+            
+            # Block 4: 128 -> 256
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((4, 4)) # Output: (Batch, 256, 4, 4)
+        )
+        
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(256 * 4 * 4, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Dropout(0.5), # Regularization
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(128, num_classes)
+        )
+        
+    def forward(self, x):
+        x = self.features(x)
+        x = self.classifier(x)
+        return x
+
 if __name__ == "__main__":
     # Test model shape
-    model = SimpleCNN()
+    model = DeeperCNN()
     # Dummy input: (Batch, Channel, Freq, Time)
     dummy_input = torch.randn(4, 1, 64, 32)
     output = model(dummy_input)
